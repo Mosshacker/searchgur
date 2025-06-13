@@ -1,7 +1,7 @@
 export default {
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    const keyword = url.searchParams.get("keyword");
+    const { searchParams } = new URL(request.url);
+    const keyword = searchParams.get("keyword");
 
     if (!keyword) {
       return new Response(
@@ -10,21 +10,34 @@ export default {
       );
     }
 
-    const lines = [
-      "The Lord is my shepherd.",
-      "Truth is high, but higher still is truthful living.",
-      "Even kings and emperors with heaps of wealth and vast dominion cannot compare with an ant filled with love."
-    ];
+    try {
+      const response = await fetch(`https://api.gurbaninow.com/v2/shabads/search/${encodeURIComponent(keyword)}`);
+      const data = await response.json();
 
-    const matched = lines.find((line) =>
-      line.toLowerCase().includes(keyword.toLowerCase())
-    );
+      // Check if there are results
+      if (!data || !data.shabads || data.shabads.length === 0) {
+        return new Response(
+          JSON.stringify({ textResponse: `No results found for "${keyword}".` }),
+          { headers: { "Content-Type": "application/json" } }
+        );
+      }
 
-    const chosenLine = matched || lines[Math.floor(Math.random() * lines.length)];
+      // Pick a random line from the first matching shabad
+      const shabad = data.shabads[0];
+      const randomLineIndex = Math.floor(Math.random() * shabad.lines.length);
+      const line = shabad.lines[randomLineIndex];
 
-    return new Response(
-      JSON.stringify({ textResponse: chosenLine }),
-      { headers: { "Content-Type": "application/json" } }
-    );
-  },
+      // Return the line text (assuming 'line.gurmukhi' or similar)
+      return new Response(
+        JSON.stringify({ textResponse: line.gurmukhi || line.line || "No text found." }),
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+    } catch (err) {
+      return new Response(
+        JSON.stringify({ textResponse: "An error occurred while fetching data." }),
+        { headers: { "Content-Type": "application/json" } }
+      );
+    }
+  }
 };
