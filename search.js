@@ -1,43 +1,29 @@
 export default {
-  async fetch(request, env, ctx) {
-    const { searchParams } = new URL(request.url);
-    const keyword = searchParams.get("keyword");
+  async fetch(request) {
+    const url = new URL(request.url);
+    const keyword = url.searchParams.get('keyword');
 
     if (!keyword) {
-      return new Response(
-        JSON.stringify({ textResponse: "Please provide a keyword using ?keyword=yourword" }),
-        { headers: { "Content-Type": "application/json" } }
-      );
+      return new Response('Please provide a "keyword" query parameter.', { status: 400 });
     }
 
-    try {
-      const response = await fetch(`https://api.gurbaninow.com/v2/shabads/search/${encodeURIComponent(keyword)}`);
-      const data = await response.json();
-
-      // Check if there are results
-      if (!data || !data.shabads || data.shabads.length === 0) {
-        return new Response(
-          JSON.stringify({ textResponse: `No results found for "${keyword}".` }),
-          { headers: { "Content-Type": "application/json" } }
-        );
-      }
-
-      // Pick a random line from the first matching shabad
-      const shabad = data.shabads[0];
-      const randomLineIndex = Math.floor(Math.random() * shabad.lines.length);
-      const line = shabad.lines[randomLineIndex];
-
-      // Return the line text (assuming 'line.gurmukhi' or similar)
-      return new Response(
-        JSON.stringify({ textResponse: line.gurmukhi || line.line || "No text found." }),
-        { headers: { "Content-Type": "application/json" } }
-      );
-
-    } catch (err) {
-      return new Response(
-        JSON.stringify({ textResponse: "An error occurred while fetching data." }),
-        { headers: { "Content-Type": "application/json" } }
-      );
+    const rawUrl = 'https://paste.ee/r/a4NQFoHN/0'; // your raw file URL here
+    const res = await fetch(rawUrl);
+    if (!res.ok) {
+      return new Response('Failed to fetch source data.', { status: 502 });
     }
+
+    const text = await res.text();
+    const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+
+    const found = lines.find(line => line.toLowerCase().includes(keyword.toLowerCase()));
+
+    if (!found) {
+      return new Response(`No matching lines found for "${keyword}".`, { status: 404 });
+    }
+
+    return new Response(found, {
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
+    });
   }
-};
+}
