@@ -1,0 +1,3 @@
+name = "gurbani-search"
+main = "search.js"
+compatibility_date = "2025-06-13"
