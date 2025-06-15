@@ -7,22 +7,25 @@ export default {
       return new Response('Please provide a "keyword" query parameter.', { status: 400 });
     }
 
-    const rawUrl = 'https://paste.ee/r/a4NQFoHN/0'; // your raw file URL here
+    const rawUrl = 'https://paste.ee/r/a4NQFoHN/0'; // replace if needed
     const res = await fetch(rawUrl);
     if (!res.ok) {
       return new Response('Failed to fetch source data.', { status: 502 });
     }
 
     const text = await res.text();
-    const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+    const lines = text
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0 && line.toLowerCase().includes(keyword.toLowerCase()));
 
-    const found = lines.find(line => line.toLowerCase().includes(keyword.toLowerCase()));
-
-    if (!found) {
+    if (lines.length === 0) {
       return new Response(`No matching lines found for "${keyword}".`, { status: 404 });
     }
 
-    return new Response(found, {
+    const randomLine = lines[Math.floor(Math.random() * lines.length)];
+
+    return new Response(randomLine, {
       headers: { 'Content-Type': 'text/plain;charset=UTF-8' }
     });
   }
